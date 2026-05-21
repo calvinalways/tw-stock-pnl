@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="股票損益">
+  <title>股票已實現損益紀錄</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="108" fill="%230f766e"/><path d="M112 338h288" stroke="%23e8f3ef" stroke-width="30" stroke-linecap="round"/><path d="M142 318l78-78 58 58 96-116" fill="none" stroke="%23fff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/></svg>'>
+  <style>
+    :root {
+      --bg: #f6f7f2;
+      --ink: #16201f;
+      --muted: #687370;
+      --line: #dce2dc;
+      --panel: #ffffff;
+      --accent: #0f766e;
+      --accent-dark: #0b5f58;
+      --gain: #087443;
+      --loss: #b42318;
+      --soft: #e8f3ef;
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      padding: calc(16px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+    }
+
+    .topbar,
+    .panel-title,
+    .month-tools,
+    .dialog-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 0;
+      font-size: 28px;
+      line-height: 1.15;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      font-size: 18px;
+    }
+
+    .summary {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 18px 0;
+      padding: 20px;
+      border-radius: 8px;
+      background: #123c36;
+      color: #fff;
+    }
+
+    .summary p {
+      margin-bottom: 4px;
+      color: #cde4dd;
+    }
+
+    #monthTotal {
+      display: block;
+      font-size: clamp(34px, 10vw, 56px);
+      line-height: 1;
+    }
+
+    .summary-side {
+      display: grid;
+      gap: 6px;
+      color: #d8ece6;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .panel {
+      margin: 16px 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .quick-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      outline: 3px solid rgba(15, 118, 110, 0.15);
+    }
+
+    .icon-button,
+    .mic-button {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .mic-button {
+      flex: 0 0 auto;
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      font-size: 20px;
+    }
+
+    .mic-button.recording {
+      border-color: var(--loss);
+      background: var(--loss);
+    }
+
+    .hint {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .trade-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .preview {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--muted);
+    }
+
+    .preview strong {
+      color: var(--ink);
+      font-size: 22px;
+    }
+
+    .primary,
+    .ghost,
+    .text-button,
+    .danger {
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      padding: 10px 14px;
+      font-weight: 800;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .primary:active,
+    .mic-button:active {
+      background: var(--accent-dark);
+    }
+
+    .ghost,
+    .text-button {
+      border-color: var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .text-button {
+      min-height: 36px;
+      color: var(--accent);
+    }
+
+    .danger {
+      min-height: 36px;
+      border-color: #f0c5c0;
+      background: #fff7f6;
+      color: var(--loss);
+    }
+
+    .month-tools {
+      margin: 16px 0;
+    }
+
+    .month-tools input {
+      min-width: 0;
+      text-align: center;
+    }
+
+    .records {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .record {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .record strong {
+      font-size: 17px;
+    }
+
+    .record-meta,
+    .record-fees {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .record-amount {
+      text-align: right;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .gain { color: var(--gain); }
+    .loss { color: var(--loss); }
+
+    .empty {
+      margin: 18px 0 4px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    dialog {
+      width: min(420px, calc(100% - 28px));
+      border: 0;
+      border-radius: 8px;
+      padding: 0;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.42);
+    }
+
+    .settings-form {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+    }
+
+    @media (max-width: 560px) {
+      .trade-form {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .summary-side {
+        display: flex;
+        justify-content: space-between;
+        text-align: left;
+      }
+
+      .month-tools {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Realized P/L</p>
+        <h1>股票已實現損益</h1>
+      </div>
+      <button id="settingsButton" class="icon-button" type="button" aria-label="設定手續費折數" title="設定">⚙</button>
+    </header>
+
+    <section class="summary" aria-label="本月損益摘要">
+      <div>
+        <p id="summaryLabel">本月至今日</p>
+        <strong id="monthTotal">$0</strong>
+      </div>
+      <div class="summary-side">
+        <span id="recordCount">0 筆</span>
+        <span id="feeInfo">手續費 6 折</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="新增紀錄">
+      <div class="quick-row">
+        <input id="quickInput" type="text" inputmode="text" autocomplete="off" placeholder="例：2330 賣出 賺 5200 成交 120000">
+        <button id="voiceButton" class="mic-button" type="button" aria-label="口說輸入" title="口說輸入">🎙</button>
+      </div>
+      <p id="voiceStatus" class="hint">可輸入「股票代碼、賺/賠金額、成交金額」，也可按麥克風口說。</p>
+
+      <form id="tradeForm" class="trade-form">
+        <label>
+          <span>日期</span>
+          <input id="tradeDate" type="date" required>
+        </label>
+        <label>
+          <span>股票代碼</span>
+          <input id="stockCode" type="text" inputmode="numeric" placeholder="2330" required>
+        </label>
+        <label>
+          <span>股票名稱</span>
+          <input id="stockName" type="text" placeholder="台積電">
+        </label>
+        <label>
+          <span>獲利/虧損</span>
+          <input id="grossProfit" type="number" inputmode="decimal" placeholder="5200" required>
+        </label>
+        <label>
+          <span>賣出成交金額</span>
+          <input id="sellAmount" type="number" inputmode="decimal" placeholder="120000">
+        </label>
+        <label>
+          <span>買進成交金額</span>
+          <input id="buyAmount" type="number" inputmode="decimal" placeholder="可留空">
+        </label>
+        <label class="wide">
+          <span>備註</span>
+          <input id="note" type="text" placeholder="短沖、波段、語音內容...">
+        </label>
+        <div class="preview wide">
+          <span>預估費稅後損益</span>
+          <strong id="netPreview">$0</strong>
+        </div>
+        <button class="primary wide" type="submit">新增紀錄</button>
+      </form>
+    </section>
+
+    <section class="month-tools" aria-label="月份切換">
+      <button id="prevMonth" class="ghost" type="button">上個月</button>
+      <input id="monthPicker" type="month">
+      <button id="nextMonth" class="ghost" type="button">下個月</button>
+    </section>
+
+    <section class="panel" aria-label="月度紀錄">
+      <div class="panel-title">
+        <h2 id="recordsTitle">月度紀錄</h2>
+        <button id="exportButton" class="text-button" type="button">匯出 CSV</button>
+      </div>
+      <div id="recordsList" class="records"></div>
+      <p id="emptyState" class="empty">目前月份還沒有紀錄。</p>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="settings-form">
+      <h2>交易費稅設定</h2>
+      <label>
+        <span>手續費折數</span>
+        <input id="feeDiscount" type="number" min="0" max="1" step="0.01">
+      </label>
+      <p class="hint">台股預設手續費 0.1425%，賣出證交稅 0.3%。折數 0.6 代表 6 折。</p>
+      <div class="dialog-actions">
+        <button value="cancel" class="ghost" type="submit">取消</button>
+        <button id="saveSettings" value="default" class="primary" type="submit">儲存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const STORAGE_KEY = "tw-stock-realized-pl-records-v1";
+    const SETTINGS_KEY = "tw-stock-realized-pl-settings-v1";
+    const BROKER_FEE_RATE = 0.001425;
+    const SELL_TAX_RATE = 0.003;
+
+    const stockNames = {
+      "1101": "台泥",
+      "1216": "統一",
+      "1301": "台塑",
+      "1303": "南亞",
+      "2002": "中鋼",
+      "2303": "聯電",
+      "2317": "鴻海",
+      "2330": "台積電",
+      "2357": "華碩",
+      "2382": "廣達",
+      "2412": "中華電",
+      "2454": "聯發科",
+      "2603": "長榮",
+      "2609": "陽明",
+      "2615": "萬海",
+      "2881": "富邦金",
+      "2882": "國泰金",
+      "2891": "中信金",
+      "3008": "大立光",
+      "3661": "世芯-KY",
+      "3711": "日月光投控",
+      "5871": "中租-KY",
+      "6505": "台塑化",
+      "6669": "緯穎"
+    };
+
+    const nameToCode = Object.fromEntries(Object.entries(stockNames).map(([code, name]) => [name, code]));
+
+    const el = {
+      monthTotal: document.querySelector("#monthTotal"),
+      summaryLabel: document.querySelector("#summaryLabel"),
+      recordCount: document.querySelector("#recordCount"),
+      feeInfo: document.querySelector("#feeInfo"),
+      quickInput: document.querySelector("#quickInput"),
+      voiceButton: document.querySelector("#voiceButton"),
+      voiceStatus: document.querySelector("#voiceStatus"),
+      form: document.querySelector("#tradeForm"),
+      tradeDate: document.querySelector("#tradeDate"),
+      stockCode: document.querySelector("#stockCode"),
+      stockName: document.querySelector("#stockName"),
+      grossProfit: document.querySelector("#grossProfit"),
+      sellAmount: document.querySelector("#sellAmount"),
+      buyAmount: document.querySelector("#buyAmount"),
+      note: document.querySelector("#note"),
+      netPreview: document.querySelector("#netPreview"),
+      prevMonth: document.querySelector("#prevMonth"),
+      nextMonth: document.querySelector("#nextMonth"),
+      monthPicker: document.querySelector("#monthPicker"),
+      recordsTitle: document.querySelector("#recordsTitle"),
+      recordsList: document.querySelector("#recordsList"),
+      emptyState: document.querySelector("#emptyState"),
+      exportButton: document.querySelector("#exportButton"),
+      settingsButton: document.querySelector("#settingsButton"),
+      settingsDialog: document.querySelector("#settingsDialog"),
+      feeDiscount: document.querySelector("#feeDiscount"),
+      saveSettings: document.querySelector("#saveSettings")
+    };
+
+    let records = readJson(STORAGE_KEY, []);
+    let settings = readJson(SETTINGS_KEY, { feeDiscount: 0.6 });
+    let selectedMonth = monthKey(new Date());
+    let recognition = null;
+
+    init();
+
+    function init() {
+      el.tradeDate.value = dateKey(new Date());
+      el.monthPicker.value = selectedMonth;
+      el.feeDiscount.value = settings.feeDiscount;
+      bindEvents();
+      setupSpeech();
+      updatePreview();
+      render();
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      }
+    }
+
+    function bindEvents() {
+      el.quickInput.addEventListener("input", () => applyParsedText(el.quickInput.value, false));
+      el.quickInput.addEventListener("change", () => applyParsedText(el.quickInput.value, true));
+      el.stockCode.addEventListener("input", fillStockName);
+
+      [el.grossProfit, el.sellAmount, el.buyAmount].forEach((field) => {
+        field.addEventListener("input", updatePreview);
+      });
+
+      el.form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        addRecord();
+      });
+
+      el.prevMonth.addEventListener("click", () => shiftMonth(-1));
+      el.nextMonth.addEventListener("click", () => shiftMonth(1));
+      el.monthPicker.addEventListener("change", () => {
+        selectedMonth = el.monthPicker.value || monthKey(new Date());
+        render();
+      });
+
+      el.settingsButton.addEventListener("click", () => el.settingsDialog.showModal());
+      el.saveSettings.addEventListener("click", () => {
+        settings.feeDiscount = clamp(Number(el.feeDiscount.value) || 0, 0, 1);
+        saveJson(SETTINGS_KEY, settings);
+        updatePreview();
+        render();
+      });
+
+      el.exportButton.addEventListener("click", exportCsv);
+    }
+
+    function setupSpeech() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        el.voiceStatus.textContent = "此瀏覽器不支援語音辨識，仍可用打字輸入。";
+        el.voiceButton.disabled = true;
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = "zh-TW";
+      recognition.interimResults = false;
+      recognition.continuous = false;
+
+      recognition.addEventListener("start", () => {
+        el.voiceButton.classList.add("recording");
+        el.voiceStatus.textContent = "正在聆聽，請說出股票代碼與獲利金額。";
+      });
+
+      recognition.addEventListener("result", (event) => {
+        const text = Array.from(event.results).map((result) => result[0].transcript).join("");
+        el.quickInput.value = text;
+        applyParsedText(text, true);
+        el.voiceStatus.textContent = `已辨識：${text}`;
+      });
+
+      recognition.addEventListener("end", () => {
+        el.voiceButton.classList.remove("recording");
+      });
+
+      recognition.addEventListener("error", () => {
+        el.voiceStatus.textContent = "語音辨識未完成，請再試一次或改用打字輸入。";
+      });
+
+      el.voiceButton.addEventListener("click", () => recognition.start());
+    }
+
+    function applyParsedText(text, commitDate) {
+      const parsed = parseTradeText(text);
+      if (parsed.code) {
+        el.stockCode.value = parsed.code;
+        fillStockName();
+      }
+      if (parsed.name) el.stockName.value = parsed.name;
+      if (Number.isFinite(parsed.profit)) el.grossProfit.value = parsed.profit;
+      if (Number.isFinite(parsed.sellAmount)) el.sellAmount.value = parsed.sellAmount;
+      if (Number.isFinite(parsed.buyAmount)) el.buyAmount.value = parsed.buyAmount;
+      if (commitDate && text.trim()) el.note.value = text.trim();
+      updatePreview();
+    }
+
+    function parseTradeText(rawText) {
+      const text = normalizeText(rawText);
+      const compact = text.replace(/\s+/g, "");
+      const codeMatch = compact.match(/\b\d{4}\b/) || compact.match(/\d{4}/);
+      let code = codeMatch ? codeMatch[0] : "";
+      let name = "";
+
+      for (const [stockName, stockCode] of Object.entries(nameToCode)) {
+        if (compact.includes(stockName)) {
+          code = stockCode;
+          name = stockName;
+          break;
+        }
+      }
+
+      if (code && !name) name = stockNames[code] || "";
+
+      const profitMatch =
+        compact.match(/(?:賺|獲利|盈利|利潤|正)(-?\d+(?:\.\d+)?)/) ||
+        compact.match(/(?:賠|虧|虧損|損失)(\d+(?:\.\d+)?)/) ||
+        compact.match(/(-?\d+(?:\.\d+)?)(?:元)?(?:獲利|盈利|利潤|損益)/);
+
+      let profit = Number.NaN;
+      if (profitMatch) {
+        profit = Number(profitMatch[1]);
+        if (/賠|虧|虧損|損失/.test(profitMatch[0])) profit = -Math.abs(profit);
+      }
+
+      const sellMatch = compact.match(/(?:賣出|賣|成交|售出)(\d+(?:\.\d+)?)/);
+      const buyMatch = compact.match(/(?:買進|買入|買)(\d+(?:\.\d+)?)/);
+
+      return {
+        code,
+        name,
+        profit,
+        sellAmount: sellMatch ? Number(sellMatch[1]) : Number.NaN,
+        buyAmount: buyMatch ? Number(buyMatch[1]) : Number.NaN
+      };
+    }
+
+    function normalizeText(text) {
+      return String(text)
+        .replace(/[，,]/g, "")
+        .replace(/(\d+(?:\.\d+)?)萬/g, (_, value) => String(Number(value) * 10000))
+        .replace(/零/g, "0")
+        .replace(/一/g, "1")
+        .replace(/二/g, "2")
+        .replace(/兩/g, "2")
+        .replace(/三/g, "3")
+        .replace(/四/g, "4")
+        .replace(/五/g, "5")
+        .replace(/六/g, "6")
+        .replace(/七/g, "7")
+        .replace(/八/g, "8")
+        .replace(/九/g, "9")
+        .replace(/(\d+(?:\.\d+)?)千/g, (_, value) => String(Number(value) * 1000))
+        .replace(/(\d+(?:\.\d+)?)百/g, (_, value) => String(Number(value) * 100))
+        .replace(/(\d+(?:\.\d+)?)十/g, (_, value) => String(Number(value) * 10));
+    }
+
+    function fillStockName() {
+      const code = el.stockCode.value.trim();
+      if (stockNames[code] && !el.stockName.value.trim()) el.stockName.value = stockNames[code];
+      updatePreview();
+    }
+
+    function addRecord() {
+      const grossProfit = Number(el.grossProfit.value);
+      if (!el.stockCode.value.trim() || !Number.isFinite(grossProfit)) return;
+
+      const costs = calculateCosts();
+      records.unshift({
+        id: self.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        date: el.tradeDate.value || dateKey(new Date()),
+        code: el.stockCode.value.trim(),
+        name: el.stockName.value.trim(),
+        grossProfit,
+        sellAmount: numberOrZero(el.sellAmount.value),
+        buyAmount: numberOrZero(el.buyAmount.value),
+        fee: costs.fee,
+        tax: costs.tax,
+        netProfit: costs.netProfit,
+        note: el.note.value.trim(),
+        createdAt: new Date().toISOString()
+      });
+
+      saveJson(STORAGE_KEY, records);
+      selectedMonth = monthKey(new Date(`${el.tradeDate.value}T00:00:00`));
+      el.monthPicker.value = selectedMonth;
+      el.form.reset();
+      el.tradeDate.value = dateKey(new Date());
+      el.quickInput.value = "";
+      updatePreview();
+      render();
+    }
+
+    function calculateCosts() {
+      const grossProfit = numberOrZero(el.grossProfit.value);
+      const buyAmount = numberOrZero(el.buyAmount.value);
+      const sellAmount = numberOrZero(el.sellAmount.value);
+      const fee = Math.round((buyAmount + sellAmount) * BROKER_FEE_RATE * settings.feeDiscount);
+      const tax = Math.round(sellAmount * SELL_TAX_RATE);
+      return { fee, tax, netProfit: Math.round(grossProfit - fee - tax) };
+    }
+
+    function updatePreview() {
+      const costs = calculateCosts();
+      el.netPreview.textContent = money(costs.netProfit);
+      el.netPreview.className = costs.netProfit < 0 ? "loss" : "gain";
+    }
+
+    function render() {
+      const monthRecords = records
+        .filter((record) => record.date.startsWith(selectedMonth))
+        .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+      const total = monthRecords.reduce((sum, record) => sum + Number(record.netProfit || 0), 0);
+      const [year, month] = selectedMonth.split("-");
+
+      el.summaryLabel.textContent = `${year}/${month} 累積損益`;
+      el.monthTotal.textContent = money(total);
+      el.monthTotal.className = total < 0 ? "loss" : "gain";
+      el.recordCount.textContent = `${monthRecords.length} 筆`;
+      el.feeInfo.textContent = `手續費 ${formatDiscount(settings.feeDiscount)}`;
+      el.recordsTitle.textContent = `${year}/${month} 月度紀錄`;
+      el.emptyState.hidden = monthRecords.length > 0;
+
+      el.recordsList.innerHTML = "";
+      for (const record of monthRecords) {
+        el.recordsList.appendChild(createRecordCard(record));
+      }
+    }
+
+    function createRecordCard(record) {
+      const card = document.createElement("article");
+      card.className = "record";
+
+      const title = document.createElement("div");
+      title.innerHTML = `<strong>${escapeHtml(record.code)} ${escapeHtml(record.name || "")}</strong>
+        <div class="record-meta">${escapeHtml(record.date)}${record.note ? ` · ${escapeHtml(record.note)}` : ""}</div>
+        <div class="record-fees">原始 ${money(record.grossProfit)} · 手續費 ${money(record.fee)} · 稅 ${money(record.tax)}</div>`;
+
+      const side = document.createElement("div");
+      side.className = "record-amount";
+      side.innerHTML = `<div class="${record.netProfit < 0 ? "loss" : "gain"}">${money(record.netProfit)}</div>`;
+
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "danger";
+      deleteButton.type = "button";
+      deleteButton.textContent = "刪除";
+      deleteButton.addEventListener("click", () => deleteRecord(record.id));
+      side.appendChild(deleteButton);
+
+      card.append(title, side);
+      return card;
+    }
+
+    function deleteRecord(id) {
+      records = records.filter((record) => record.id !== id);
+      saveJson(STORAGE_KEY, records);
+      render();
+    }
+
+    function shiftMonth(offset) {
+      const [year, month] = selectedMonth.split("-").map(Number);
+      const date = new Date(year, month - 1 + offset, 1);
+      selectedMonth = monthKey(date);
+      el.monthPicker.value = selectedMonth;
+      render();
+    }
+
+    function exportCsv() {
+      const rows = [["日期", "股票代碼", "股票名稱", "原始損益", "賣出成交", "買進成交", "手續費", "證交稅", "費稅後損益", "備註"]];
+      for (const record of records.filter((item) => item.date.startsWith(selectedMonth))) {
+        rows.push([record.date, record.code, record.name, record.grossProfit, record.sellAmount, record.buyAmount, record.fee, record.tax, record.netProfit, record.note]);
+      }
+      const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+      const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `stock-pl-${selectedMonth}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function readJson(key, fallback) {
+      try {
+        return JSON.parse(localStorage.getItem(key)) ?? fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function saveJson(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function numberOrZero(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function money(value) {
+      return new Intl.NumberFormat("zh-TW", {
+        style: "currency",
+        currency: "TWD",
+        maximumFractionDigits: 0
+      }).format(Number(value) || 0);
+    }
+
+    function formatDiscount(value) {
+      return `${Math.round(value * 100) / 10} 折`;
+    }
+
+    function dateKey(date) {
+      return date.toISOString().slice(0, 10);
+    }
+
+    function monthKey(date) {
+      return date.toISOString().slice(0, 7);
+    }
+
+    function csvCell(value) {
+      return `"${String(value ?? "").replace(/"/g, '""')}"`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "股票損益紀錄",
+  "short_name": "股票損益",
+  "description": "iPhone 可安裝的台股已實現損益紀錄 PWA，資料儲存在本機。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f2",
+  "theme_color": "#0f766e",
+  "lang": "zh-Hant-TW",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%230f766e'/%3E%3Cpath d='M112 338h288' stroke='%23e8f3ef' stroke-width='30' stroke-linecap='round'/%3E%3Cpath d='M142 318l78-78 58 58 96-116' fill='none' stroke='%23fff' stroke-width='34' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
