@@ -1,7 +1,8 @@
-const CACHE_NAME = "stock-pl-pwa-v1";
+const CACHE_NAME = "stock-pl-pwa-v2";
 const APP_ASSETS = [
   "./",
   "./index.html",
+  "./stock-data.js",
   "./manifest.webmanifest",
   "./sw.js"
 ];
